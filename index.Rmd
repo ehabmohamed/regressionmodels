@@ -1,0 +1,148 @@
+---
+title: "MPG Regression Analysis"
+author: "Ehab Mohamed"
+date: "22 November 2015"
+output: html_document
+---
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+library(ggplot2)
+library(GGally)
+```
+
+## Executive Summary
+
+The aim of this report is to analyse the relationship between a set of variables and miles per gallon (MPG). Motor Trend magazine dataset (mtcars) is used as a source of car road tests data.
+The report targets to get insights related to the below questions:
+
+- "Is an automatic or manual transmission better for MPG"
+- "Quantify the MPG difference between automatic and manual transmissions"
+
+It starts with exploratory data analysis and then provides linear regression analysis including simple and multivariate regression models. The regression analysis examines different models in order to come up with a suitable model for analysis.
+
+The final chosen model points out that while keeping both weight and time for 1/4 mile constant, an apparent increase occurs in mileage related with manual transmission of 2.94 mpg more than the automatic transmission.
+
+## Exploratory Data Analysis
+
+In Figure 1, the mpg analysis by transmission type is illustrated and the means of MPG for both Automatic and Manual transmissions are highlighted (17 for Automatic and 24 for Manual). Figure 2 shows the relationship between MPG and the Weight, where when the Weight is increased the MPG is decreased. Figure 3 shows the relationship between MPG and the 1/4 mile time, where when the 1/4 mile time is increased the MPG is also increased. Figure 4 provides a multivariate correlation analysis between MPG, Weight, 1/4 mile time and Transmission Type.
+
+## Linear Regression Model
+
+### Simple Linear Regression
+
+The simple linear regression model considered only the Transmission Type as a regressor to predict the MPG.
+
+Coefficients:
+
+```{r echo=FALSE}
+data(mtcars)
+mtcars$am <- as.factor(mtcars$am)
+levels(mtcars$am) <- c("Automatic", "Manual")
+
+fit <- lm(mpg ~ am, data = mtcars)
+#summary(fit)
+summary(fit)$call
+summary(fit)$coefficients
+```
+
+Multiple R-squared:
+
+```{r echo=FALSE}
+summary(fit)$r.squared
+```
+
+The simple regression model shows an increase of 7.24 in MPG related with manual transmission type more than automatic transmission type. However, the R^2 value is 0.3598 which indicates that the model explains only 36% of the variance.
+
+### Multivariate Regression Analysis
+
+In order to identify the suitable multivariate linear regression mode, the below nested model testing is used:
+
+```{r echo=FALSE}
+anova(
+    lm(mpg ~ am, data = mtcars),
+    lm(mpg ~ am + wt, data = mtcars),
+    lm(mpg ~ am + wt + qsec, data = mtcars),
+    lm(mpg ~ am + wt + qsec + disp, data = mtcars),
+    lm(mpg ~ am + wt + qsec + disp + hp, data = mtcars),
+    lm(mpg ~ am + wt + qsec + disp + hp + cyl, data = mtcars)
+)
+```
+
+According to the nested test, the P-Value associated with Model 3 is significantly small which indicates that the inclusion of wt and qsec appears to be necessary beyond just including am.
+
+The multivariate regression model appears to include the necessary variables and produces the below coefficients:
+
+```{r echo=FALSE}
+fit <- lm(mpg ~ am + wt + qsec, data = mtcars)
+#summary(fit)
+summary(fit)$call
+summary(fit)$coefficients
+```
+
+Multiple R-squared:
+
+```{r echo=FALSE}
+summary(fit)$r.squared
+```
+
+This model captured 85% of the overall variation in mpg which indicates that it is significantly different from the simple linear regression model and can be selected as a suitable model for regression.
+
+Figure 5 illustrates the residual diagnostics for selected multivariate model.
+
+## Conclusion
+
+The selected model explains 85% of the variance in miles per gallon (mpg). Moreover, wt and qsec are necessary to illustrate the relationship between am and mpg. The model shows that manual transmission cars have 2.94 MPGs more than automatic transmission cars while keeping constant both weight and time for 1/4 mile. This increase in MPG is much lower than when not adjusting for weight and qsec.
+
+Therefore, to identify which transmission type has better MPG, weight and time for 1/4 mile have to be considered in the context.
+
+\newpage
+
+## Appendix
+
+**Figure 1: Miles/(US) gallon (MPG) by Transmission Type (am)**
+
+```{r echo=FALSE, results='hide', fig.height=4, fig.align='center'}
+g = ggplot(data = mtcars, aes(y = mpg, x = am, fill = am))
+g = g + geom_violin(colour = "black", size = 2)
+g = g + xlab("Transmission Type") + ylab("Miles/(US) gallon")
+g = g + geom_hline(yintercept = mean(mtcars[mtcars$am == "Automatic","mpg"]))
+g = g + geom_hline(yintercept = mean(mtcars[mtcars$am == "Manual","mpg"]))
+g
+```
+
+**Figure 2: Miles/(US) gallon (MPG) and Weight (lb/1000) (wt) relationship**
+
+```{r echo=FALSE, results='hide', fig.height=3, fig.align='center'}
+g = ggplot(data = mtcars, aes(y = mpg, x = wt, colour = am))
+g = g + geom_point(size = 6, colour = "black") + geom_point(size = 4)
+g = g + xlab("Weight (lb/1000)") + ylab("Miles/(US) gallon")
+g = g + geom_smooth(method = "lm", colour = "black")
+g
+```
+
+\newpage
+
+**Figure 3: Miles/(US) gallon (MPG) and 1/4 mile time (qsec) relationship**
+
+```{r echo=FALSE, results='hide', fig.height=3, fig.align='center'}
+g = ggplot(data = mtcars, aes(y = mpg, x = qsec, colour = am))
+g = g + geom_point(size = 6, colour = "black") + geom_point(size = 4)
+g = g + xlab("1/4 mile time") + ylab("Miles/(US) gallon")
+g = g + geom_smooth(method = "lm", colour = "black")
+g
+```
+
+**Figure 4: Multivariate correlation analysis**
+
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+g = ggpairs(mtcars[,c("mpg", "am", "wt", "qsec")], lower = list(continuous = "smooth"), params = c(method = "loess"))
+g
+```
+
+\newpage
+
+**Figure 5: Residual diagnostics for selected multivariate model**
+
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+par(mfrow = c(2, 2))
+plot(fit)
+```
